@@ -3,6 +3,19 @@ jobs:
   build:
     docker:
       - image: circleci/php:7.3-node-browsers
+      - image: circleci/postgres:11.6-alpine # テストでもPostgreSQLが使用できる設定を追加
+        environment: # imageと並ぶenvironment PostgreSQLのコンテナに対する環境変数
+          POSTGRES_DB: larasns
+          POSTGRES_USER: default
+          POSTGRES_PASSWORD: secret
+    environment: # ジョブ名の配下のenvironment buildジョブ全体に適用される環境変数
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: larasns
+      DB_USERNAME: default
+      DB_PASSWORD: secret
     steps:
       - checkout # checkoutは、GitHubからCircleCIの環境にソースコードをコピー(git clone)する
       - run: sudo composer self-update --1 # イメージが古くなり、エラーを回避するために導入
@@ -27,6 +40,13 @@ jobs:
           paths: # package-lock.jsonでは、npmによってインストールされた各パッケージのバージョンが、依存パッケージも含め管理
             - node_modules #
       - run: npm run dev # JavaScriptのトランスパイル 省略形 通常はrunのあとにnameやcommandを定義
+      - run: # PHPからPostgreSQLへ接続するための準備
+          name: get ready for postgres # -timeout 1m 通信が成功するまで最大1分待つ PostgreSQLのコンテナの起動が完了するより前に次のPHPUnitのステップが開始することの無いように
+          command: |
+            sudo apt-get update
+            sudo apt-get install libpq-dev
+            sudo docker-php-ext-install pdo_pgsql
+            dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: php test
           command: vendor/bin/phpunit
