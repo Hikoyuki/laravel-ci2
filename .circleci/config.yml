@@ -4,4 +4,11 @@ jobs:
     docker:
       - image: circleci/php:7.3-node-browsers
     steps:
-      - run: echo "Hello World"
+      - checkout # checkoutは、GitHubからCircleCIの環境にソースコードをコピー(git clone)する
+      - run: sudo composer self-update --1 # イメージが古くなり、エラーを回避するために導入
+      - run: composer install -n --prefer-dist # Composerを使用してPHP関連パッケージのインストール ci環境では毎回必要
+      - run: npm ci # npmを使用してJavaScript関連パッケージをインストール
+      - run: npm run dev # JavaScriptのトランスパイル 省略形 通常はrunのあとにnameやcommandを定義
+      - run:
+          name: php test
+          command: vendor/bin/phpunit
