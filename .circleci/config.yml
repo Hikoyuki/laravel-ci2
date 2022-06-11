@@ -6,7 +6,13 @@ jobs:
     steps:
       - checkout # checkoutは、GitHubからCircleCIの環境にソースコードをコピー(git clone)する
       - run: sudo composer self-update --1 # イメージが古くなり、エラーを回避するために導入
+      - restore_cache: # restore_cacheでは、保存されたキャッシュを復元
+          key: composer-v1-{{ checksum "composer.lock" }} # keyには、復元するキャッシュの名前を指定　checksumはファイルをハッシュ化する
       - run: composer install -n --prefer-dist # Composerを使用してPHP関連パッケージのインストール ci環境では毎回必要
+      - save_cache: # save_cacheでは、keyに指定した名前でキャッシュを保存
+          key: composer-v1-{{ checksum "composer.lock" }} # 新たにキャッシュを保存し直したい時は、v2, v3と名前を変える必要がある
+          paths: # 保存するディレクトリ名やファイル名はpathsに指定
+            - vendor # CircleCIでは、キャッシュを約1ヶ月保存してくれますが、意図的にキャッシュをクリアする方法はない
       - run: npm ci # npmを使用してJavaScript関連パッケージをインストール
       - run: npm run dev # JavaScriptのトランスパイル 省略形 通常はrunのあとにnameやcommandを定義
       - run:
